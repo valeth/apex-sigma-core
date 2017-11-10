@@ -12,7 +12,6 @@ try:
 except ModuleNotFoundError:
     sys.stderr.write("Systemd journal not available, using stdout\n")
 
-
 def create_logger(name, *, to_title=False, level=None):
     """
     Add a new logger.

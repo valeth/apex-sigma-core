@@ -1,11 +1,14 @@
-import os
-import yaml
 import importlib
+import os
+
+import yaml
 
 from sigma.core.mechanics.logger import create_logger
 
+
 class Disabled(Exception):
     pass
+
 
 class SigmaModuleComponent(object):
     def __init__(self, parent, config):
@@ -26,7 +29,7 @@ class SigmaModuleComponent(object):
             raise Disabled
 
         component = cls(parent, config)
-        return (component.name, component)
+        return component.name, component
 
     @classmethod
     def from_file(cls, parent, file):

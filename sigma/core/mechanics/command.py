@@ -1,16 +1,17 @@
-﻿import os
+﻿import inspect
+import os
 import secrets
 import traceback
-import inspect
 
 import discord
 
-from sigma.core.mechanics.module_component import SigmaModuleComponent
 from sigma.core.mechanics.command_requirements import CommandRequirements
 from sigma.core.mechanics.logger import create_logger
+from sigma.core.mechanics.module_component import SigmaModuleComponent
 from sigma.core.mechanics.permissions import GlobalCommandPermissions
 from sigma.core.mechanics.permissions import ServerCommandPermissions
 from sigma.core.utilities.stats_processing import add_cmd_stat
+
 
 class SigmaCommand(SigmaModuleComponent):
     """
@@ -34,13 +35,15 @@ class SigmaCommand(SigmaModuleComponent):
     alts: list(string)
         List of aliases for this command.
     requirements: list(string)
-        List of required permissions to use this command.
+    List of required permissions to use this command.
+    :param sigma_module:
+    :param config:
     """
-    def __init__(self, module, config):
-        super().__init__(module, config)
 
+    def __init__(self, sigma_module, config):
+        super().__init__(sigma_module, config)
         self.log = create_logger(self.name.upper())
-        self.module = module
+        self.module = sigma_module
         self.cfg = {}
         self.cache = {}
 
@@ -65,7 +68,7 @@ class SigmaCommand(SigmaModuleComponent):
     @property
     def requirements(self):
         requirements = ['send_messages', 'embed_links']
-        return (requirements + self.config.get('requirements', []))
+        return requirements + self.config.get('requirements', [])
 
     @property
     def command(self):
@@ -91,10 +94,17 @@ class SigmaCommand(SigmaModuleComponent):
         self.log.info(log_text)
 
     def log_unpermitted(self, perms):
-        self.log.warning('ACCESS DENIED | '
-                         f'{perms.permission_string} | '
-                         f'USR: {perms.user.name} [{perms.user.id}] | '
-                         f'SRV: {perms.server.name} [{perms.server.id}]')
+        if perms.server:
+            log_text = ('ACCESS DENIED | '
+                        f'{perms.permission_string} | '
+                        f'USR: {perms.user.name} [{perms.user.id}] | '
+                        f'SRV: {perms.server.name} [{perms.server.id}]')
+        else:
+            log_text = ('ACCESS DENIED | '
+                        f'{perms.permission_string} | '
+                        f'USR: {perms.user.name} [{perms.user.id}] | '
+                        'DIRECT MESSAGE')
+        self.log.warning(log_text)
 
     def add_usage_exp(self, message):
         if message.guild:
@@ -258,7 +268,7 @@ class SigmaCommand(SigmaModuleComponent):
 
         try:
             await getattr(self.command, self.name)(self, message, args)
-            await add_cmd_stat(self.db, self, message, args, command_id)
+            await add_cmd_stat(self.db, self, message, args)
             self.add_usage_exp(message)
             self.bot.command_count += 1
         except self.get_exception() as e:
